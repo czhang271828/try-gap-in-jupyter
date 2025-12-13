@@ -8,11 +8,11 @@ The jupyter kernel for GAP is unfriendly for Windows users. This fork aims to pr
 
 ## Setup
 
-**Step 1** Open [this repository](https://github.com/czhang271828/GAP_Online/) and [binder](https://mybinder.org/) on your browser. A VPN may be required.
+**Step 1** Open [this repository](https://github.com/czhang271828/try-gap-in-jupyter/) and [binder](https://mybinder.org/) on your browser. A VPN may be required.
 
 **Step 2** Fill in the followings in binder:
 
-- GitHub repository name or URL: https://github.com/czhang271828/GAP_Online
+- GitHub repository name or URL: https://github.com/czhang271828/try-gap-in-jupyter
 - Git ref (branch, tag, or commit): main
 - File to open (in JupyterLab): test_file.ipynb
 
