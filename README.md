@@ -12,9 +12,9 @@ The jupyter kernel for GAP is unfriendly for Windows users. This fork aims to pr
 
 **Step 2** Fill in the followings in binder:
 
-- GitHub repository name or URL: https://github.com/czhang271828/try-gap-in-jupyter
-- Git ref (branch, tag, or commit): main
-- File to open (in JupyterLab): test_file.ipynb
+- GitHub repository name or URL: `https://github.com/czhang271828/try-gap-in-jupyter`
+- Git ref (branch, tag, or commit): `main`
+- File to open (in JupyterLab): (Keep it empty)
 
 Then click the "Launch" button.
 
