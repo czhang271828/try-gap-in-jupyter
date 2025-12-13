@@ -1,4 +1,4 @@
 FROM gapsystem/gap-docker
-COPY --chown=1000:1000 . $HOME/GAP_Online
+COPY --chown=1000:1000 . $HOME/try-gap-in-jupyter
 USER gap
-WORKDIR $HOME/GAP_Online
+WORKDIR $HOME/try-gap-in-jupyter
