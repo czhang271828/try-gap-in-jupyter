@@ -21,3 +21,5 @@ Then click the "Launch" button.
 **Step 3** Wait for a few minutes until the JupyterLab interface is fully loaded.
 
 **Step 4** Do not be worried if you see a 404 message once the interface is loaded. Just copy and paste the URL from the `Copy Binder Link` button on the top right corner to your browser's address bar and hit Enter.
+
+**Step 5** Create a new notebook with the GAP kernel by clicking on `New -> Notebook -> GAP4`.
