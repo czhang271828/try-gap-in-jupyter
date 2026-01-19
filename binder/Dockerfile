@@ -1,8 +1,45 @@
-# Use the official, pre-built GAP Docker image which contains everything needed.
-FROM gapsystem/gap-docker:latest
+# The base image already comes with JupyterLab and a few other goodies
+FROM jupyter/scipy-notebook:latest
 
-# The original Dockerfile copies local files into the container.
-# We will just set the working directory for simplicity.
-# You can add a COPY command here if you have local notebooks you want to include.
-USER gap
-WORKDIR /home/gap
+# We need to run the rest of the build as root
+USER root
+
+# Install dependencies needed to build GAP from source
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    autoconf \
+    git \
+    wget \
+    vim \
+    m4 \
+    libzmq3-dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Set the desired GAP version (v4.15.1 in this case)
+ARG GAP_VERSION=4.15.1
+
+# Clone the GAP source code from GitHub and checkout the specific version tag
+RUN git clone https://github.com/gap-system/gap.git /usr/local/gap && \
+    cd /usr/local/gap && \
+    git checkout v${GAP_VERSION}
+
+# Manually clone ONLY the JupyterKernel package into the 'pkg' directory.
+# This is necessary because it's not a submodule for v4.15.1.
+RUN git clone https://github.com/gap-packages/JupyterKernel.git /usr/local/gap/pkg/JupyterKernel
+
+# Build GAP by compiling the source from the git repository
+RUN cd /usr/local/gap && \
+    ./autogen.sh && \
+    ./configure && \
+    make
+
+# Copy the custom 'gap-jupyter' wrapper script (which must be in your repo's root)
+COPY gap-jupyter /usr/local/bin/
+RUN chmod +x /usr/local/bin/gap-jupyter
+
+# Switch back to the notebook user for the final installation
+USER ${NB_USER}
+
+# Use the wrapper script to correctly build and install the Jupyter kernel
+RUN /usr/local/bin/gap-jupyter install --user
