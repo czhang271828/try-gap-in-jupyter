@@ -1,29 +1,25 @@
-#!/bin/bash
-# A wrapper for the GAP Jupyter kernel, see
-# https://github.com/gap-system/JupyterKernel
+#!/usr/bin/env bash
 
-# ensure that this script is run with bash
+set -e
+
+# ensure bash
 if [ -z "$BASH_VERSION" ]; then
     exec bash "$0" "$@"
 fi
 
-# path to GAP root directory, autodetected
-GAP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/../gap"
-if [ ! -f "$GAP_DIR/sysinfo.gap" ]; then
-    GAP_DIR="/usr/local/gap"
+# GAP root
+GAP_DIR="/usr/local/gap"
+
+KERNEL_DIR="$GAP_DIR/pkg/JupyterKernel"
+KERNEL_SCRIPT="$KERNEL_DIR/bin/jupyter-kernel.py"
+
+# Build JupyterKernel (this creates bin/jupyter-kernel.py)
+if [ ! -f "$KERNEL_SCRIPT" ]; then
+    echo "Building GAP JupyterKernel..."
+    cd "$KERNEL_DIR"
+    ./configure "$GAP_DIR"
+    make
 fi
 
-# path to the real kernel
-KERNEL="$GAP_DIR/pkg/JupyterKernel/bin/jupyter-kernel.py"
-
-# helper function to build a package
-build_pkg() {
-    "$GAP_DIR/bin/BuildPackages.sh" --with-gaproot="$GAP_DIR" "$1"
-}
-
-# ensure that all required packages are build
-build_pkg "JupyterKernel"
-build_pkg "zeromq"
-
-# now run the kernel
-exec "$KERNEL" "$@"
+# Install kernel into Jupyter
+exec "$KERNEL_SCRIPT" "$@"
