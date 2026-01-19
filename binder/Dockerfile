@@ -5,7 +5,7 @@ FROM jupyter/scipy-notebook:latest
 # This points to the latest recommended version from https://www.gap-system.org/install/linux/
 ARG GAP_VERSION=4.15.1
 ARG GAP_INSTALLER=gap-${GAP_VERSION}.sh
-ARG GAP_URL=https://www.gap-system.org/pub/gap/gap-4.13/${GAP_INSTALLER}
+ARG GAP_URL=https://www.gap-system.org/pub/gap/gap-4.15/${GAP_INSTALLER}
 
 # We need to run the rest of the build as root
 USER root
@@ -20,7 +20,7 @@ RUN apt-get update && \
 # Download the installer, make it executable, and run it.
 # The `yes |` command automatically answers 'yes' to the license prompt,
 # allowing the script to run non-interactively.
-# The script will create a directory named `gap-4.13.0` in the root ('/') directory.
+# The script will create a directory named `gap-4.15.1` in the root ('/') directory.
 RUN wget -O /tmp/${GAP_INSTALLER} ${GAP_URL} && \
     chmod +x /tmp/${GAP_INSTALLER} && \
     yes | /tmp/${GAP_INSTALLER}
