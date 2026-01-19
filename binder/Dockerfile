@@ -43,4 +43,5 @@ RUN /usr/local/gap/bin/BuildPackages.sh --with-gaproot=/usr/local/gap jupyter
 
 # The following command makes sure that the GAP kernel is available
 # in Jupyter for the current user.
-RUN /usr/local/gap/bin/gap.sh --jupyter-install-kernel --user
+# The executable is now 'gap', not 'gap.sh'.
+RUN /usr/local/gap/bin/gap --jupyter-install-kernel --user
