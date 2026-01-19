@@ -37,8 +37,9 @@ RUN mv /usr/local/gap-${GAP_VERSION} /usr/local/gap && \
 # Switch back to the notebook user
 USER ${NB_USER}
 
-# Install the Jupyter kernel for GAP
-RUN /usr/local/gap/bin/BuildPackages.sh /usr/local/gap jupyter
+# Install the Jupyter kernel for GAP.
+# Use the --with-gaproot flag as suggested by the build error.
+RUN /usr/local/gap/bin/BuildPackages.sh --with-gaproot=/usr/local/gap jupyter
 
 # The following command makes sure that the GAP kernel is available
 # in Jupyter for the current user.
