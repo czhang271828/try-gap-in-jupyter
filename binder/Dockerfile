@@ -12,12 +12,14 @@ ARG GAP_URL=https://github.com/gap-system/gap/releases/download/v${GAP_VERSION}/
 USER root
 
 # Install dependencies needed to build GAP from source
+# The 'm4' package was added to fix the configure error.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     git \
     wget \
-    vim && \
+    vim \
+    m4 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Download and extract the GAP source code from the GitHub release
