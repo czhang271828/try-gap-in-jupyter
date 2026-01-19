@@ -29,10 +29,11 @@ RUN wget -O /tmp/${GAP_ARCHIVE} ${GAP_URL} && \
 
 # Build GAP by compiling the source
 # We move it to /usr/local/gap so the path doesn't contain the version number
+# CRITICAL CHANGE: Add 'bindir=/usr/local/bin' to install 'gap' to the system PATH
 RUN mv /usr/local/gap-${GAP_VERSION} /usr/local/gap && \
     cd /usr/local/gap && \
     ./configure && \
-    make
+    make bindir=/usr/local/bin
 
 # Switch back to the notebook user
 USER ${NB_USER}
@@ -43,5 +44,5 @@ RUN /usr/local/gap/bin/BuildPackages.sh --with-gaproot=/usr/local/gap jupyter
 
 # The following command makes sure that the GAP kernel is available
 # in Jupyter for the current user.
-# The executable is now 'gap', not 'gap.sh'.
-RUN /usr/local/gap/bin/gap --jupyter-install-kernel --user
+# CRITICAL CHANGE: Call 'gap' directly, as it is now in the system PATH.
+RUN gap --jupyter-install-kernel --user
