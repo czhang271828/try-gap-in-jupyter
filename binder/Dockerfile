@@ -4,7 +4,8 @@ FROM jupyter/scipy-notebook:latest
 # We need to run the rest of the build as root
 USER root
 
-# Install dependencies needed to build GAP from source
+# Install dependencies needed to build GAP and its Jupyter kernel
+# THIS IS THE CRITICAL FIX: Add the 'libzmq3-dev' system library.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
@@ -12,7 +13,8 @@ RUN apt-get update && \
     git \
     wget \
     vim \
-    m4 && \
+    m4 \
+    libzmq3-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Clone the git repository and check out the specific version tag
@@ -20,9 +22,9 @@ RUN git clone https://github.com/gap-system/gap.git /usr/local/gap && \
     cd /usr/local/gap && \
     git checkout v4.15.1
 
-# THIS IS THE CRITICAL FIX: Manually clone the required packages into the 'pkg' directory.
-RUN git clone https://github.com/gap-packages/JupyterKernel.git /usr/local/gap/pkg/JupyterKernel && \
-    git clone https://github.com/gap-packages/zeromq.git /usr/local/gap/pkg/zeromq
+# Manually clone ONLY the JupyterKernel package into the 'pkg' directory.
+# We do NOT clone zeromq.
+RUN git clone https://github.com/gap-packages/JupyterKernel.git /usr/local/gap/pkg/JupyterKernel
 
 # Build GAP by compiling the source from the git repository
 RUN cd /usr/local/gap && \
