@@ -20,9 +20,9 @@ RUN git clone https://github.com/gap-system/gap.git /usr/local/gap && \
     cd /usr/local/gap && \
     git checkout v4.15.1
 
-# THIS IS THE CRITICAL FIX: Initialize and download the required packages (submodules)
-RUN cd /usr/local/gap && \
-    git submodule update --init pkg/JupyterKernel pkg/zeromq
+# THIS IS THE CRITICAL FIX: Manually clone the required packages into the 'pkg' directory.
+RUN git clone https://github.com/gap-packages/JupyterKernel.git /usr/local/gap/pkg/JupyterKernel && \
+    git clone https://github.com/gap-packages/zeromq.git /usr/local/gap/pkg/zeromq
 
 # Build GAP by compiling the source from the git repository
 RUN cd /usr/local/gap && \
