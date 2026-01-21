@@ -18,19 +18,25 @@ ENV PATH=/opt/conda/envs/gap415/bin:$PATH
 RUN python -m pip install --no-cache-dir \
     "git+https://github.com/gap-packages/JupyterKernel.git@v1.5.1"
 
-# 写 kernelspec：gap-4
+# 写 kernelspec：放到 base 的 share 里，让 base 的 JupyterLab 能看到
 RUN python - <<'PY'
 import json, pathlib
-prefix = "/opt/conda/envs/gap415"
-kdir = pathlib.Path(prefix) / "share/jupyter/kernels/gap-4"
+base = "/opt/conda"
+env  = "/opt/conda/envs/gap415"
+
+kdir = pathlib.Path(base) / "share/jupyter/kernels/gap-4"
 kdir.mkdir(parents=True, exist_ok=True)
+
 kernel = {
-  "argv": [f"{prefix}/bin/jupyter-kernel-gap", "{connection_file}"],
+  "argv": [f"{env}/bin/jupyter-kernel-gap", "{connection_file}"],
   "display_name": "GAP 4 (Binder gap415)",
   "language": "gap",
   "codemirror_mode": "gap",
   "interrupt_mode": "message",
-  "env": {"JUPYTER_GAP_EXECUTABLE": f"{prefix}/bin/gap", "PS1": "$"}
+  "env": {
+    "JUPYTER_GAP_EXECUTABLE": f"{env}/bin/gap",
+    "PS1": "$"
+  }
 }
 (kdir / "kernel.json").write_text(json.dumps(kernel, indent=2))
 print("Wrote kernelspec:", kdir / "kernel.json")
