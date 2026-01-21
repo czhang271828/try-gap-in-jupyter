@@ -11,22 +11,17 @@ COPY binder/conda-linux-64.txt /tmp/conda-linux-64.txt
 RUN mamba create -y -n gap415 --file /tmp/conda-linux-64.txt && \
     mamba clean -afy
 
-ENV CONDA_DEFAULT_ENV=gap415
-ENV PATH=/opt/conda/envs/gap415/bin:$PATH
-
-# 确保 GAP JupyterKernel 1.5.1 安装在该环境（如果你的 spec 已包含，也不会坏）
-RUN python -m pip install --no-cache-dir \
+# ✅ 关键：把 GAP JupyterKernel 安装到 gap415 环境（不要影响 base server）
+RUN /opt/conda/envs/gap415/bin/python -m pip install --no-cache-dir \
     "git+https://github.com/gap-packages/JupyterKernel.git@v1.5.1"
 
 # 写 kernelspec：放到 base 的 share 里，让 base 的 JupyterLab 能看到
-RUN python - <<'PY'
+RUN /opt/conda/bin/python - <<'PY'
 import json, pathlib
 base = "/opt/conda"
 env  = "/opt/conda/envs/gap415"
-
 kdir = pathlib.Path(base) / "share/jupyter/kernels/gap-4"
 kdir.mkdir(parents=True, exist_ok=True)
-
 kernel = {
   "argv": [f"{env}/bin/jupyter-kernel-gap", "{connection_file}"],
   "display_name": "GAP 4 (Binder gap415)",
@@ -42,13 +37,10 @@ kernel = {
 print("Wrote kernelspec:", kdir / "kernel.json")
 PY
 
+# （可选）保留你之前的配置；对 WS 不一定有用，但无害
 RUN mkdir -p /home/${NB_USER}/.jupyter && \
     cat > /home/${NB_USER}/.jupyter/jupyter_server_config.py <<'EOF'
 c.ServerApp.open_browser = False
-
-# Binder/反向代理/跨域更兼容（解决不少 “Kernel status: Unknown”/channels 连不上 的情况）
-c.ServerApp.allow_origin = "*"
-c.ServerApp.allow_remote_access = True
 EOF
 
 USER root
