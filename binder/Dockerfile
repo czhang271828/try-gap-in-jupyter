@@ -4,11 +4,12 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
-
 USER ${NB_UID}
 
-# 固定版本，避免混装
-RUN mamba install -y -c conda-forge \
+# 1) 不改 base：新建独立环境 gap415（更稳）
+# 2) 固定你验证过可用的版本
+# 3) 强制用 repodata.json，避免 current_repodata.json 不包含旧版本导致找不到
+RUN mamba create -y -n gap415 -c conda-forge \
     python=3.11 \
     gap=4.15.1 \
     jupyter_server=2.14.2 \
@@ -17,20 +18,23 @@ RUN mamba install -y -c conda-forge \
     jupyter_client=8.6.3 \
     jupyter_console \
     pyzmq \
+    --repodata-fn repodata.json \
  && mamba clean -afy
 
-# 安装 GAP JupyterKernel 1.5.1
+# 让容器默认使用 gap415 环境里的 python/jupyter
+ENV CONDA_DEFAULT_ENV=gap415
+ENV PATH=/opt/conda/envs/gap415/bin:$PATH
+
+# 安装 GAP JupyterKernel 1.5.1 到 gap415 环境
 RUN python -m pip install --no-cache-dir \
     "git+https://github.com/gap-packages/JupyterKernel.git@v1.5.1"
 
-# 写 kernelspec：gap-4（标准 heredoc，不要反斜杠续行）
+# 写 kernelspec：gap-4（指向 gap415 环境）
 RUN python - <<'PY'
-import json, os, pathlib
-
-prefix = os.environ.get("CONDA_PREFIX", "/opt/conda")
+import json, pathlib, os
+prefix = "/opt/conda/envs/gap415"
 kdir = pathlib.Path(prefix) / "share/jupyter/kernels/gap-4"
 kdir.mkdir(parents=True, exist_ok=True)
-
 kernel = {
   "argv": [f"{prefix}/bin/jupyter-kernel-gap", "{connection_file}"],
   "display_name": "GAP 4 (Binder gap415)",
@@ -42,16 +46,15 @@ kernel = {
     "PS1": "$"
   }
 }
-
 (kdir / "kernel.json").write_text(json.dumps(kernel, indent=2))
 print("Wrote kernelspec:", kdir / "kernel.json")
 PY
 
-# 不自动开浏览器
+# 避免容器里尝试自动打开浏览器（也减少 Wayland 噪音）
 RUN mkdir -p /home/${NB_USER}/.jupyter && \
     printf "c.ServerApp.open_browser = False\n" > /home/${NB_USER}/.jupyter/jupyter_server_config.py
 
-# Binder 约定：把仓库 COPY 到 $HOME 并 chown
+# Binder 约定：复制仓库到 $HOME 并修正权限
 USER root
 COPY . ${HOME}
 RUN chown -R ${NB_UID}:${NB_GID} ${HOME}
