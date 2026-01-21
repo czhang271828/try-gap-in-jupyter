@@ -42,9 +42,14 @@ kernel = {
 print("Wrote kernelspec:", kdir / "kernel.json")
 PY
 
-# 不自动开浏览器
 RUN mkdir -p /home/${NB_USER}/.jupyter && \
-    printf "c.ServerApp.open_browser = False\n" > /home/${NB_USER}/.jupyter/jupyter_server_config.py
+    cat > /home/${NB_USER}/.jupyter/jupyter_server_config.py <<'EOF'
+c.ServerApp.open_browser = False
+
+# Binder/反向代理/跨域更兼容（解决不少 “Kernel status: Unknown”/channels 连不上 的情况）
+c.ServerApp.allow_origin = "*"
+c.ServerApp.allow_remote_access = True
+EOF
 
 USER root
 COPY . ${HOME}
