@@ -19,7 +19,8 @@ RUN mamba install -y -n base -c conda-forge jupyter_console && \
 RUN /opt/conda/envs/gap415/bin/python -m pip install --no-cache-dir \
     "git+https://github.com/gap-packages/JupyterKernel.git@v1.5.1"
 
-# 4) wrapper：强制 PATH + JUPYTER_GAP_EXECUTABLE，并自适配是否需要 -f
+# 4) wrapper：强制 PATH + JUPYTER_GAP_EXECUTABLE，再启动 jupyter-kernel-gap
+#    关键：不要擅自加 -f，让 connection_file 作为位置参数原样传给 jupyter-kernel-gap
 USER root
 RUN printf '%s\n' \
 '#!/usr/bin/env bash' \
@@ -28,14 +29,7 @@ RUN printf '%s\n' \
 'export PATH="/opt/conda/envs/gap415/bin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"' \
 'export JUPYTER_GAP_EXECUTABLE="/opt/conda/envs/gap415/bin/gap"' \
 '' \
-'K="/opt/conda/envs/gap415/bin/jupyter-kernel-gap"' \
-'' \
-'# 有的实现需要 -f <connection_file>，有的直接 <connection_file>' \
-'if [[ "${1:-}" == *.json && -f "${1:-}" ]]; then' \
-'  exec "$K" -f "$1"' \
-'else' \
-'  exec "$K" "$@"' \
-'fi' \
+'exec /opt/conda/envs/gap415/bin/jupyter-kernel-gap "$@"' \
 > /opt/conda/bin/gap415-kernel && chmod +x /opt/conda/bin/gap415-kernel
 USER ${NB_UID}
 
