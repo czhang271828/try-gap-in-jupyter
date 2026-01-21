@@ -1,54 +1,64 @@
-# Binder 要求 FROM 必须带 tag，且不能用 latest :contentReference[oaicite:3]{index=3}
-# Jupyter Docker Stacks 现在主要在 Quay.io 发布（Docker Hub 老镜像不再更新）:contentReference[oaicite:4]{index=4}
+# 必须用固定 tag（不要 latest）
 FROM quay.io/jupyter/minimal-notebook:2025-12-31
 
-ARG GAP_VERSION=4.15.1
-ARG JUPYTERKERNEL_TAG=v1.5.1
-
+# Jupyter stacks 默认用户是 jovyan (uid=1000)，符合 Binder 要求
 USER root
 
-# GAP +（可选）JupyterKernel 依赖：
-# JupyterKernel 依赖构建 ZeroMQInterface 等包时需要 libzmq3-dev 和 m4 :contentReference[oaicite:5]{index=5}
+# 安装一些基础工具（git 用于 pip 从 GitHub 安装 JupyterKernel）
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    autoconf automake libtool \
-    libgmp-dev libreadline-dev zlib1g-dev \
-    libzmq3-dev m4 \
-    git wget ca-certificates xz-utils \
+    git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
-
-# 安装 GAP 到 /opt，并让 NB_USER（uid=1000）可写
-ENV GAP_ROOT=/opt/gap-${GAP_VERSION}
-RUN mkdir -p /opt && chown -R ${NB_UID}:${NB_GID} /opt
 
 USER ${NB_UID}
 
-# 下载并编译 GAP 4.15.1（发布包在 gap-system/gap releases）:contentReference[oaicite:6]{index=6}
-# 注意：如果你发现下载 URL 变了，就去 releases 页面复制资产直链即可。
-RUN cd /tmp \
- && wget -q -O gap-${GAP_VERSION}.tar.gz \
-      https://github.com/gap-system/gap/releases/download/v${GAP_VERSION}/gap-${GAP_VERSION}.tar.gz \
- && tar -xzf gap-${GAP_VERSION}.tar.gz \
- && mv gap-${GAP_VERSION} ${GAP_ROOT} \
- && cd ${GAP_ROOT} \
- && ./configure --with-gmp=system --with-readline=system \
- && make -j"$(nproc)" \
- && cd pkg && ../bin/BuildPackages.sh \
- && rm -rf /tmp/*
+# 1) 用 mamba/conda 在 base 环境里固定版本安装（避免混装）
+#    minimal-notebook 自带 conda/mamba（通常有 mamba；没有的话用 conda 也能跑）
+RUN mamba install -y -c conda-forge \
+    python=3.11 \
+    gap=4.15.1 \
+    jupyter_server=2.14.2 \
+    jupyterlab=4.3.8 \
+    notebook=7.3.3 \
+    jupyter_client=8.6.3 \
+    jupyter_console \
+    pyzmq \
+ && mamba clean -afy
 
-# 安装 JupyterKernel（克隆到 GAP pkg 下，然后 pip install . 注册 kernel）:contentReference[oaicite:7]{index=7}
-RUN cd ${GAP_ROOT}/pkg \
- && git clone --depth 1 --branch ${JUPYTERKERNEL_TAG} https://github.com/gap-packages/JupyterKernel.git \
- && cd JupyterKernel \
- && python3 -m pip install --no-cache-dir --user .
+# 2) 安装 GAP JupyterKernel 1.5.1
+RUN python -m pip install --no-cache-dir \
+    "git+https://github.com/gap-packages/JupyterKernel.git@v1.5.1"
 
-# 确保 gap 与 jupyter-kernel-gap 可被找到
-ENV PATH="/home/${NB_USER}/.local/bin:${PATH}"
-ENV JUPYTER_GAP_EXECUTABLE="${GAP_ROOT}/gap"
+# 3) 写入 kernelspec：gap-4
+#    - argv 指向本环境的 jupyter-kernel-gap
+#    - env 指定 JUPYTER_GAP_EXECUTABLE 为 conda 的 gap
+RUN python - <<'PY' \
+import json, os, pathlib \
+prefix = os.environ.get("CONDA_PREFIX", "/opt/conda") \
+kdir = pathlib.Path(prefix) / "share/jupyter/kernels/gap-4" \
+kdir.mkdir(parents=True, exist_ok=True) \
+kernel = { \
+  "argv": [f"{prefix}/bin/jupyter-kernel-gap", "{connection_file}"], \
+  "display_name": "GAP 4 (Binder gap415)", \
+  "language": "gap", \
+  "codemirror_mode": "gap", \
+  "interrupt_mode": "message", \
+  "env": { \
+    "JUPYTER_GAP_EXECUTABLE": f"{prefix}/bin/gap", \
+    "PS1": "$" \
+  } \
+} \
+(kdir / "kernel.json").write_text(json.dumps(kernel, indent=2)) \
+print("Wrote kernelspec:", kdir / "kernel.json") \
+PY
 
-# --- 下面对应你贴的 COPY/USER/WORKDIR 思路：把仓库放进 HOME 并切到工作目录 ---
-# Binder 要求 repo 内容在 $HOME 且归 NB_USER 所有 :contentReference[oaicite:8]{index=8}
+# 4) 避免容器里尝试自动打开浏览器（也避免 Wayland 噪音）
+RUN mkdir -p /home/${NB_USER}/.jupyter && \
+    printf "c.ServerApp.open_browser = False\n" > /home/${NB_USER}/.jupyter/jupyter_server_config.py
+
+# 5) 复制仓库到 $HOME 并确保权限正确（Binder 要求）
 USER root
-COPY . ${HOME}/try-gap-in-jupyter
-RUN chown -R ${NB_UID}:${NB_GID} ${HOME}/try-gap-in-jupyter
-WORKDIR ${HOME}/try-gap-in-jupyter
+COPY . ${HOME}
+RUN chown -R ${NB_UID}:${NB_GID} ${HOME}
+USER ${NB_UID}
+
+WORKDIR ${HOME}
