@@ -56,31 +56,28 @@ LoadPackage("JupyterKernel");
 QUIT_GAP(0);
 GAP
 
-# 4) wrapper：强制 PATH + JUPYTER_GAP_EXECUTABLE，再启动 jupyter-kernel-gap
-#    关键：不要擅自加 -f，让 connection_file 作为位置参数原样传给 jupyter-kernel-gap
-USER root
-RUN printf '%s\n' \
-'#!/usr/bin/env bash' \
-'set -euo pipefail' \
-'' \
-'export PATH="/opt/conda/envs/gap415/bin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"' \
-'export JUPYTER_GAP_EXECUTABLE="/opt/conda/envs/gap415/bin/gap"' \
-'' \
-'exec /opt/conda/envs/gap415/bin/jupyter-kernel-gap "$@"' \
-> /opt/conda/bin/gap415-kernel && chmod +x /opt/conda/bin/gap415-kernel
-USER ${NB_UID}
+# 4) (Removed wrapper) - directly use kernel.json env for cleaner execution
 
 # 5) kernelspec：放到 base 的 share 里，让 base 的 JupyterLab 能看到
+#    直接调用 python -m jupyter_kernel_gap，并设置环境变量确保能找到 GAP
 RUN /opt/conda/bin/python - <<'PY'
 import json, pathlib
 kdir = pathlib.Path("/opt/conda/share/jupyter/kernels/gap-4")
 kdir.mkdir(parents=True, exist_ok=True)
 kernel = {
-  "argv": ["/opt/conda/bin/gap415-kernel", "{connection_file}"],
+  "argv": [
+    "/opt/conda/envs/gap415/bin/python",
+    "-m", "jupyter_kernel_gap",
+    "{connection_file}"
+  ],
   "display_name": "GAP 4 (Binder gap415)",
   "language": "gap",
   "codemirror_mode": "gap",
-  "interrupt_mode": "message"
+  "interrupt_mode": "message",
+  "env": {
+    "JUPYTER_GAP_EXECUTABLE": "/opt/conda/envs/gap415/bin/gap",
+    "PATH": "/opt/conda/envs/gap415/bin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  }
 }
 (kdir / "kernel.json").write_text(json.dumps(kernel, indent=2))
 print("Wrote kernelspec:", kdir / "kernel.json")
