@@ -2,7 +2,7 @@ FROM quay.io/jupyter/minimal-notebook:2025-12-31
 
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git ca-certificates \
+    git ca-certificates m4 libzmq3-dev \
  && rm -rf /var/lib/apt/lists/*
 USER ${NB_UID}
 
@@ -20,6 +20,14 @@ RUN mamba install -y -n base -c conda-forge jupyter_console && \
 RUN /opt/conda/envs/gap415/bin/python -m pip install --no-cache-dir \
     "git+https://github.com/gap-packages/JupyterKernel.git@master" && \
     mamba clean -afy
+
+# 3.1) 安装 GAP 的 JupyterKernel 包到 GAP pkg 目录（GAP 侧需要）
+USER root
+RUN mkdir -p /opt/conda/envs/gap415/share/gap/pkg && \
+        git clone --depth 1 --branch master https://github.com/gap-packages/JupyterKernel.git \
+            /opt/conda/envs/gap415/share/gap/pkg/JupyterKernel && \
+        chown -R ${NB_UID}:${NB_GID} /opt/conda/envs/gap415/share/gap/pkg/JupyterKernel
+USER ${NB_UID}
 
 # 4) wrapper：强制 PATH + JUPYTER_GAP_EXECUTABLE，再启动 jupyter-kernel-gap
 #    关键：不要擅自加 -f，让 connection_file 作为位置参数原样传给 jupyter-kernel-gap
