@@ -59,15 +59,30 @@ GAP
 # 4) (Removed wrapper) - directly use kernel.json env for cleaner execution
 
 # 5) kernelspec：放到 base 的 share 里，让 base 的 JupyterLab 能看到
-#    显式使用 /bin/bash 执行脚本，并移除 interrupt_mode 避免潜在的不兼容
+#    替换为 Python Wrapper 以增强稳定性和调试能力
+RUN printf '%s\n' \
+'import os, sys, subprocess' \
+'if len(sys.argv) < 2:' \
+'    sys.exit(1)' \
+'conn_file = sys.argv[1]' \
+'gap_exe = os.environ.get("JUPYTER_GAP_EXECUTABLE", "gap")' \
+'gap_cmd = [gap_exe, "-q", "-T", "--alwaystrace"]' \
+'# GAP commands to run' \
+'code = f"LoadPackage(\"JupyterKernel\"); JUPYTER_KernelStart_GAP(\"{conn_file}\"); QUIT_GAP(0);"' \
+'# Start GAP and feed code via stdin' \
+'p = subprocess.Popen(gap_cmd, stdin=subprocess.PIPE, text=True)' \
+'p.communicate(input=code)' \
+'sys.exit(p.returncode)' \
+> /opt/conda/bin/gap-kernel-wrapper.py
+
 RUN /opt/conda/bin/python - <<'PY'
 import json, pathlib
 kdir = pathlib.Path("/opt/conda/share/jupyter/kernels/gap-4")
 kdir.mkdir(parents=True, exist_ok=True)
 kernel = {
   "argv": [
-    "/bin/bash",
-    "/opt/conda/envs/gap415/bin/jupyter-kernel-gap",
+    "/opt/conda/envs/gap415/bin/python",
+    "/opt/conda/bin/gap-kernel-wrapper.py",
     "{connection_file}"
   ],
   "display_name": "GAP 4 (Binder gap415)",
