@@ -59,9 +59,9 @@ GAP
 # 4) (Removed wrapper) - directly use kernel.json env for cleaner execution
 
 # 5) kernelspec：放到 base 的 share 里，让 base 的 JupyterLab 能看到
-#    替换为【带调试日志】的 Python Wrapper
+#    替换为【带 PID 文件修复】的 Python Wrapper
 RUN printf '%s\n' \
-'import os, sys, subprocess, traceback' \
+'import os, sys, subprocess, traceback, time' \
 'LOG_FILE = "/tmp/gap_debug.log"' \
 'def log(msg):' \
 '    with open(LOG_FILE, "a") as f: f.write(str(msg) + "\n")' \
@@ -70,16 +70,19 @@ RUN printf '%s\n' \
 '    if len(sys.argv) < 2: sys.exit(1)' \
 '    conn_file = sys.argv[1]' \
 '    gap_exe = os.environ.get("JUPYTER_GAP_EXECUTABLE", "gap")' \
-'    cmd = [gap_exe, "-l", "/opt/conda/envs/gap415/share/gap", "-q", "-T", "--alwaystrace"]' \
+'    # 关键修改：移除 --alwaystrace，它可能干扰了 IO_WaitPid' \
+'    cmd = [gap_exe, "-l", "/opt/conda/envs/gap415/share/gap", "-q", "-T"]' \
 '    gap_code = f"LoadPackage(\"JupyterKernel\"); JUPYTER_KernelStart_GAP(\"{conn_file}\"); QUIT_GAP(0);"' \
 '    log(f"CMD: {cmd}")' \
-'    # Redirect outputs to log file for debugging (Web UI error usually means stderr output)' \
-'    with open(LOG_FILE, "a") as f_log:' \
-'        p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=f_log, stderr=f_log, text=True)' \
-'        p.communicate(input=gap_code)' \
+'    # 关键修改：手动创建 .pid 文件，解决 GAP JupyterKernel IO_WaitPid 找不到进程的问题' \
+'    # 某些版本的 JupyterKernel 依赖此文件存在。' \
+'    # 另：不再重定向 stderr 给 GAP，防止死锁或干扰' \
+'    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, text=True)' \
+'    p.communicate(input=gap_code)' \
 '    sys.exit(p.returncode)' \
 'except Exception as e:' \
 '    log(f"WRAPPER ERROR: {e}")' \
+'    traceback.print_exc(file=open(LOG_FILE, "a"))' \
 '    sys.exit(1)' \
 > /opt/conda/bin/gap-kernel-wrapper.py
 
