@@ -2,7 +2,7 @@ FROM quay.io/jupyter/minimal-notebook:2025-12-31
 
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git ca-certificates m4 libzmq3-dev \
+    git ca-certificates m4 libzmq3-dev build-essential \
  && rm -rf /var/lib/apt/lists/*
 USER ${NB_UID}
 
@@ -40,10 +40,13 @@ RUN mkdir -p /opt/conda/share/jupyter/nbextensions \
 USER ${NB_UID}
 
 # 3.1) 安装 GAP 的 JupyterKernel 包到 GAP pkg 目录（GAP 侧需要）
+#      尝试编译 C 部分（如果存在 configure），这是 local 正常但 binder 失败的常见原因
 USER root
 RUN mkdir -p /opt/conda/envs/gap415/share/gap/pkg && \
         git clone --depth 1 --branch master https://github.com/gap-packages/JupyterKernel.git \
             /opt/conda/envs/gap415/share/gap/pkg/JupyterKernel && \
+        cd /opt/conda/envs/gap415/share/gap/pkg/JupyterKernel && \
+        (if [ -f configure ]; then ./configure /opt/conda/envs/gap415/share/gap && make; fi) && \
         chown -R ${NB_UID}:${NB_GID} /opt/conda/envs/gap415/share/gap/pkg/JupyterKernel
 USER ${NB_UID}
 
