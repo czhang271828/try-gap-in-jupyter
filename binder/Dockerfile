@@ -15,15 +15,7 @@ RUN mamba create -y -n gap415 --file /tmp/conda-linux-64.txt && \
 RUN mamba install -y -n base -c conda-forge jupyter_console && \
     mamba clean -afy
 
-# 2.1) 安装 GAP JupyterKernel 依赖的 GAP 包（避免 kernel 启动后秒退）
-RUN mamba install -y -n gap415 -c conda-forge \
-    gap-gapdoc \
-    gap-io \
-    gap-json \
-    gap-uuid \
-    gap-zeromqinterface \
-    gap-crypting && \
-    mamba clean -afy
+
 
 # 3) 把 GAP JupyterKernel 安装到 gap415 环境（不影响 base 的 Jupyter Server）
 #    从 main branch 安装，因为它包含了对新版 tornado/asyncio 的修复
