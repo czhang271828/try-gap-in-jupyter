@@ -59,20 +59,20 @@ GAP
 # 4) (Removed wrapper) - directly use kernel.json env for cleaner execution
 
 # 5) kernelspec：放到 base 的 share 里，让 base 的 JupyterLab 能看到
-#    直接调用 jupyter-kernel-gap 脚本 (它是 Shell 脚本，不是 Python 模块)
+#    显式使用 /bin/bash 执行脚本，并移除 interrupt_mode 避免潜在的不兼容
 RUN /opt/conda/bin/python - <<'PY'
 import json, pathlib
 kdir = pathlib.Path("/opt/conda/share/jupyter/kernels/gap-4")
 kdir.mkdir(parents=True, exist_ok=True)
 kernel = {
   "argv": [
+    "/bin/bash",
     "/opt/conda/envs/gap415/bin/jupyter-kernel-gap",
     "{connection_file}"
   ],
   "display_name": "GAP 4 (Binder gap415)",
   "language": "gap",
   "codemirror_mode": "gap",
-  "interrupt_mode": "message",
   "env": {
     "JUPYTER_GAP_EXECUTABLE": "/opt/conda/envs/gap415/bin/gap",
     "PATH": "/opt/conda/envs/gap415/bin:/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
