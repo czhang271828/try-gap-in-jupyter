@@ -1,0 +1,14 @@
+{
+  "name": "GAP Jupyter (Codespaces)",
+  "build": {
+    "dockerfile": "../binder/Dockerfile",
+    "context": ".."
+  },
+  "forwardPorts": [8888],
+  "remoteUser": "jovyan",
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-toolsai.jupyter"]
+    }
+  }
+}
