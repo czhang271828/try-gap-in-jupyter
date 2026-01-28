@@ -11,6 +11,11 @@ COPY binder/conda-linux-64.txt /tmp/conda-linux-64.txt
 RUN mamba create -y -n gap415 --file /tmp/conda-linux-64.txt && \
     mamba clean -afy
 
+# 1.1) 补齐 GAP JupyterKernel 依赖的 GAP 包
+RUN mamba install -y -n gap415 -c conda-forge \
+    gap-io gap-json gap-uuid gap-zeromqinterface gap-crypting && \
+    mamba clean -afy
+
 # 2) 给 base 装 jupyter-console（方便在 Binder 终端验证 gap kernel）
 RUN mamba install -y -n base -c conda-forge jupyter_console && \
     mamba clean -afy
@@ -58,6 +63,9 @@ kernel = {
 (kdir / "kernel.json").write_text(json.dumps(kernel, indent=2))
 print("Wrote kernelspec:", kdir / "kernel.json")
 PY
+
+# 5.1) 通过 kernelspec install 再注册一次（确保前端可见）
+RUN /opt/conda/bin/jupyter kernelspec install --sys-prefix /opt/conda/share/jupyter/kernels/gap-4
 
 # 6) 基本 server 配置：不自动开浏览器
 RUN mkdir -p /home/${NB_USER}/.jupyter && \
