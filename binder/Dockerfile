@@ -59,20 +59,28 @@ GAP
 # 4) (Removed wrapper) - directly use kernel.json env for cleaner execution
 
 # 5) kernelspec：放到 base 的 share 里，让 base 的 JupyterLab 能看到
-#    替换为 Python Wrapper 以增强稳定性和调试能力
+#    替换为【带调试日志】的 Python Wrapper
 RUN printf '%s\n' \
-'import os, sys, subprocess' \
-'if len(sys.argv) < 2:' \
+'import os, sys, subprocess, traceback' \
+'LOG_FILE = "/tmp/gap_debug.log"' \
+'def log(msg):' \
+'    with open(LOG_FILE, "a") as f: f.write(str(msg) + "\n")' \
+'try:' \
+'    log("=== KERNEL START ===")' \
+'    if len(sys.argv) < 2: sys.exit(1)' \
+'    conn_file = sys.argv[1]' \
+'    gap_exe = os.environ.get("JUPYTER_GAP_EXECUTABLE", "gap")' \
+'    cmd = [gap_exe, "-l", "/opt/conda/envs/gap415/share/gap", "-q", "-T", "--alwaystrace"]' \
+'    gap_code = f"LoadPackage(\"JupyterKernel\"); JUPYTER_KernelStart_GAP(\"{conn_file}\"); QUIT_GAP(0);"' \
+'    log(f"CMD: {cmd}")' \
+'    # Redirect outputs to log file for debugging (Web UI error usually means stderr output)' \
+'    with open(LOG_FILE, "a") as f_log:' \
+'        p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=f_log, stderr=f_log, text=True)' \
+'        p.communicate(input=gap_code)' \
+'    sys.exit(p.returncode)' \
+'except Exception as e:' \
+'    log(f"WRAPPER ERROR: {e}")' \
 '    sys.exit(1)' \
-'conn_file = sys.argv[1]' \
-'gap_exe = os.environ.get("JUPYTER_GAP_EXECUTABLE", "gap")' \
-'gap_cmd = [gap_exe, "-q", "-T", "--alwaystrace"]' \
-'# GAP commands to run' \
-'code = f"LoadPackage(\"JupyterKernel\"); JUPYTER_KernelStart_GAP(\"{conn_file}\"); QUIT_GAP(0);"' \
-'# Start GAP and feed code via stdin' \
-'p = subprocess.Popen(gap_cmd, stdin=subprocess.PIPE, text=True)' \
-'p.communicate(input=code)' \
-'sys.exit(p.returncode)' \
 > /opt/conda/bin/gap-kernel-wrapper.py
 
 RUN /opt/conda/bin/python - <<'PY'
