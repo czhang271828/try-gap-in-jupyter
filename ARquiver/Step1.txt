@@ -1,0 +1,24 @@
+vertices: 5
+
+edges: 
+    5 3 alpha
+    3 1 beta
+    5 4 gamma
+    4 1 delta
+    4 2 epsilon
+
+rel: 
+    alpha beta-gamma delta
+    gamma epsilon
+
+style:
+    -3-
+    1-5
+    -4-
+    2--
+    
+depth: 20
+
+file: Ex28
+
+guess: F
