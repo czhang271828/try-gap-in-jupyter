@@ -53,9 +53,19 @@ kernel = {
 print("Wrote kernelspec:", kdir / "kernel.json")
 PY
 
-# 6) 基本 server 配置：不自动开浏览器
-RUN mkdir -p /home/${NB_USER}/.jupyter && \
-    printf "c.ServerApp.open_browser = False\n" > /home/${NB_USER}/.jupyter/jupyter_server_config.py
+# 6) 基本 server 配置：不自动开浏览器 + 开启 DEBUG 日志（用户级 + 系统级）
+USER root
+ENV JUPYTER_CONFIG_PATH=/etc/jupyter
+RUN mkdir -p /home/${NB_USER}/.jupyter /etc/jupyter && \
+    printf "c.ServerApp.open_browser = False\n" > /home/${NB_USER}/.jupyter/jupyter_server_config.py && \
+    printf "c.ServerApp.log_level = 'DEBUG'\n" >> /home/${NB_USER}/.jupyter/jupyter_server_config.py && \
+    printf "c.ServerApp.log_file = '/tmp/jupyter_debug.log'\n" >> /home/${NB_USER}/.jupyter/jupyter_server_config.py && \
+    printf "c.ServerApp.open_browser = False\n" > /etc/jupyter/jupyter_server_config.py && \
+    printf "c.ServerApp.log_level = 'DEBUG'\n" >> /etc/jupyter/jupyter_server_config.py && \
+    printf "c.ServerApp.log_file = '/tmp/jupyter_debug.log'\n" >> /etc/jupyter/jupyter_server_config.py && \
+    touch /tmp/jupyter_debug.log && chmod 666 /tmp/jupyter_debug.log && \
+    chown -R ${NB_UID}:${NB_GID} /home/${NB_USER}/.jupyter
+USER ${NB_UID}
 
 # 7) Binder 约定：复制仓库到 $HOME 并修正权限
 USER root
